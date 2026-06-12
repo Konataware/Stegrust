@@ -1,0 +1,7 @@
+# Rust
+/target
+
+# Python
+python/.venv/
+python/__pycache__/
+*.pyc
