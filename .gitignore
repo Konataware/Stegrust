@@ -9,4 +9,4 @@ python/__pycache__/
 # Env
 .env
 
-.png
+*.png
