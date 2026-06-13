@@ -1,61 +1,55 @@
 use anyhow::Ok;
 use clap::{ Parser };
 use rpassword::read_password;
-use hex;
+use std::path::{PathBuf};
+
 use crate::crypto::{ gen_salt, derive_key, encrypt, decrypt_full };
+use crate::cli::{Cli, Commands};
+use crate::stego_bridge::{ stego_encode, stego_decode };
 
 pub mod crypto;
 pub mod cli;
+pub mod stego_bridge;
 
-use crate::cli::{Cli, Commands};
 
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Encode { data } => {
-            eprintln!("Type in your password: ");
+        Commands::Encode { input, output, data } => {
+            eprint!("Master key: ");
             let password = read_password()?;
 
             let salt = gen_salt();
             let key = derive_key(&password, &salt)
-                .map_err(|e| anyhow::anyhow!("Key derivation failed: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("[ERROR] Key derivation failed: {}", e))?;
 
             let encrypted_payload = encrypt(data.as_bytes(), &key)
-                .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("[ERROR] Encryption failed: {}", e))?;
 
             let mut full_payload = salt.to_vec();
             full_payload.extend_from_slice(&encrypted_payload);
 
-            println!("Payload (hex): {}", hex::encode(&full_payload));
-            println!("Salt (hex): {}", hex::encode(&salt));
-            println!("Nonce + Ciphertext + Tag (hex): {}", hex::encode(&encrypted_payload));
-            println!("Total size: {} bytes", full_payload.len());
-            
+            stego_encode(&PathBuf::from(&input), &PathBuf::from(&output), &full_payload)?;
+            println!("Data successfully hidden in {}", output);
         }
 
-        Commands::Decode { payload } => {
-            let payload_bytes = hex::decode(&payload)
-                .map_err(|e| anyhow::anyhow!("Error when decoding hex: {}", e))?;
-
-            eprintln!("Type in your password: ");
+        Commands::Decode { input } => {
+            eprint!("Insert your key: ");
             let password = read_password()?;
 
-            let plaintext = decrypt_full(&payload_bytes, &password)?;
+            let payload = stego_decode(&PathBuf::from(&input))?;
 
+            let plaintext = decrypt_full(&payload, &password)?;
             let decrypted_str = String::from_utf8(plaintext)
-                .map_err(|e| anyhow::anyhow!("Deciphered data is not UTF-8 valid: {}", e))?;
-            println!("Deciphered message: {}", decrypted_str);
+                .map_err(|e| anyhow::anyhow!("[ERROR] Decrypted data is not in valid UTF-8: {}", e))?;
+            println!("{}", decrypted_str);
         },
         Commands::List => todo!(),
-        #[allow(unused)]
-        Commands::Add { name, filename } => todo!(),
-        #[allow(unused)]
-        Commands::Update { id, name, filename } => todo!(),
-        #[allow(unused)]
-        Commands::Delete { id } => todo!(),
-        
+        Commands::Add { name: _, filename: _ } => todo!(),
+        Commands::Update { id: _, name: _, filename: _ } => todo!(),
+        Commands::Delete { id: _ } => todo!(),
     }
     Ok(())
 }

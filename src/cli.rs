@@ -17,9 +17,13 @@ pub enum Commands {
         //#[arg(short, long)]
         //input: String,
 
-        // filename field
-        //#[arg(short, long)]
-        //output: String,
+        // Input image
+        #[arg(short, long)]
+        input: String,
+
+        //filename field
+        #[arg(short, long)]
+        output: String,
 
         // data field
         #[arg(short, long)]
@@ -28,11 +32,8 @@ pub enum Commands {
 
     Decode {
         // Decodes data from an input image.
-        //#[arg(short, long)]
-        //input: String
-
         #[arg(short, long)]
-        payload: String
+        input: String
     },
 
     List, // TODO

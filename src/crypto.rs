@@ -81,15 +81,14 @@ pub fn decrypt_full(payload: &[u8], password: &str) -> Result<Vec<u8>> {
     let salt: [u8; 16] = salt_bytes.try_into()
         .map_err(|_| anyhow::anyhow!("Failed to convert salt bytes to array"))?;
 
-    let key = derive_key(password, &salt)
+    let mut key = derive_key(password, &salt)
         .map_err(|e| anyhow::anyhow!("Argon2 KDF failed: {}", e))?;
 
     let plaintext = decrypt_with_key(rest, &key)
         .map_err(|e| anyhow::anyhow!("AES-GCM decryption failed: {:?}", e))?;
 
-    #[allow(dropping_copy_types)]
     // Safe cleaning
-    drop(key); // This just makes the key leave the scope. Maybe zeroize is an option but i haven't worked out that yet haha.
+    key.zeroize(); // This just makes the key leave the scope. Maybe zeroize is an option but i haven't worked out that yet haha.
 
     Ok(plaintext)
 }
