@@ -1,62 +1,62 @@
-use clap::{ Parser, Subcommand };
+// Copyright (C) 2026 João Henrique, João Pedro, João Venturini, Luãn Fernandes
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+use clap::Parser;
 
 #[derive(Parser)]
 #[command(name = "stegrust")]
 #[command(about = "Hides encrypted data within images utilizing steganography.", long_about = None)]
 pub struct Cli {
-    #[command(subcommand)]
-    pub command: Commands
-}
+    #[arg(long, conflicts_with_all = &["encode", "decode", "list", "delete", "update"])]
+    pub add: bool,
 
-#[derive(Subcommand)]
-pub enum Commands {
-    // Encodes data in an image.
-    // stegrust --encode --data '{}' --name "nameofentry" --input "/path/to/image" --output "/path/to/output"
-    Encode {
-        // name field
-        //#[arg(short, long)]
-        //input: String,
+    #[arg(long, conflicts_with_all = &["add", "decode", "list", "delete", "update"])]
+    pub encode: bool,
 
-        // Input image
-        #[arg(short, long)]
-        input: String,
+    #[arg(long, conflicts_with_all = &["add", "encode", "list", "delete", "update"])]
+    pub decode: bool,
 
-        //filename field
-        #[arg(short, long)]
-        output: String,
+    #[arg(long, conflicts_with_all = &["add", "encode", "decode", "delete", "update"])]
+    pub list: bool,
 
-        // data field
-        #[arg(short, long)]
-        data: String
-    },
+    #[arg(long, conflicts_with_all = &["add", "encode", "decode", "list", "update"])]
+    pub delete: bool,
 
-    Decode {
-        // Decodes data from an input image.
-        #[arg(short, long)]
-        input: String
-    },
+    #[arg(long, conflicts_with_all = &["add", "encode", "decode", "list", "delete"])]
+    pub update: bool,
 
-    List, // TODO
-    Add {
-        #[arg(short, long)]
-        name: String,
+    // mame of the entry (used with --add or --update)
+    #[arg(short = 'n', long)]
+    pub name: Option<String>,
 
-        #[arg(short, long)]
-        filename: String
-    },
-    Update {
-        #[arg(short, long)]
-        id: String,
+    // filename of the entry (used with --add or --update)
+    #[arg(short = 'f', long)]
+    pub filename: Option<String>,
 
-        #[arg(short, long)]
-        name: Option<String>,
+    // ID of the entry (used with --delete or --update)
+    #[arg(short = 'd', long)]
+    pub id: Option<i64>,
 
-        #[arg(short, long)]
-        filename: Option<String>
-    },
+    // input image path (used with --encode or --decode)
+    #[arg(short = 'i', long)]
+    pub input: Option<String>,
 
-    Delete {
-        #[arg(short, long)]
-        id: String
-    }
+    // output image path (used with --encode)
+    #[arg(short = 'o', long)]
+    pub output: Option<String>,
+
+    // data to hide (used with --encode)
+    #[arg(short = 'm', long)]
+    pub data: Option<String>,
 }

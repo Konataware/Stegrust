@@ -1,3 +1,18 @@
+// Copyright (C) 2026 João Henrique, João Pedro, João Venturini, Luãn Fernandes
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use aes_gcm::{
     aead::{ Aead, KeyInit },
     Aes256Gcm, Nonce, Key
@@ -8,15 +23,15 @@ use zeroize::Zeroize;
 use anyhow::Result;
 
 
-// Generates a random 16 bytes salt
+// gens a random 16 bytes salt
 pub fn gen_salt() -> [u8; 16] {
     let mut salt = [0u8; 16];
     getrandom::fill(&mut salt).unwrap();
     salt
 }
 
-// Deriva uma chave de 32 bytes a partir da senha e do salt usando Argon2id
-// Parameters: 64 MiB, 3 iterations, 1 lane and 32 output length
+// derive a 32 bytes key from the password and salt using Argon2id
+// parameters: 64 MiB, 3 iterations, 1 lane and 32 output length
 pub fn derive_key(password: &str, salt: &[u8; 16]) -> Result<[u8; 32], argon2::Error> {
     let params = Params::new(65536, 3, 1, Some(32)).expect("Valid argon2 parameters.");
     let argon2 = Argon2::new(
@@ -29,36 +44,36 @@ pub fn derive_key(password: &str, salt: &[u8; 16]) -> Result<[u8; 32], argon2::E
     Ok(output_key)
 }
 
-// Cipher the plaintext using AES-256-GCM with the provided key
-// Retorna: nonce (12 bytes) + ciphertext (inclui tag de 16 bytes ao final)
+// cipher the plaintext using AES-256-GCM with the provided key
+// this returns: nonce (12 bytes) + ciphertext (w/ auth tag)
 pub fn encrypt(plaintext: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, aes_gcm::Error> {
 
-    // Creates cipher using the key
+    // creates cipher using the key
     let key_struct = Key::<Aes256Gcm>::from_slice(key);
     let cipher = Aes256Gcm::new(key_struct);
 
-    // Gens a random 12 bytes nonce
+    // gens a random 12 bytes nonce
     let nonce_bytes = gen_nonce();
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    // Cipher! 
+    // finally, cipher! 
     let ciphertext = cipher.encrypt(nonce, plaintext)?;
 
-    // Concatenate nonce + ciphertext
+    // concatenate nonce + ciphertext
     let mut result = nonce.to_vec();
     result.extend_from_slice(&ciphertext);
     Ok(result)
 }
 
-// Gens a random 12 bytes nonce. 
+// gens a random 12 bytes nonce. 
 pub fn gen_nonce() -> [u8; 12] {
     let mut nonce = [0u8; 12];
     getrandom::fill(&mut nonce).unwrap();
     nonce
 }
 
-// Deciphers a payload containing a nonce + ciphertext (w/ tag)
-// Returns the plaintext if the tag is valid
+// deciphers a payload containing a nonce + ciphertext (w/ tag)
+// returns the plaintext if the tag is valid
 pub fn decrypt_with_key(encrypted_payload: &[u8], key: &[u8; 32]) -> Result<Vec<u8>, aes_gcm::Error> {
     if encrypted_payload.len() < 12 {
         return Err(aes_gcm::Error);
@@ -70,8 +85,8 @@ pub fn decrypt_with_key(encrypted_payload: &[u8], key: &[u8; 32]) -> Result<Vec<
     cipher.decrypt(nonce, ciphertext)
 }
 
-// Deciphers a complete payload containing salt + nonce + ciphertext (w/ tag)
-// Receives the password and extracts the initial salt
+// deciphers a complete payload containing salt + nonce + ciphertext (w/ tag)
+// receives the password and extracts the initial salt
 pub fn decrypt_full(payload: &[u8], password: &str) -> Result<Vec<u8>> {
 
     if payload.len() < 16 + 12 {
@@ -87,17 +102,13 @@ pub fn decrypt_full(payload: &[u8], password: &str) -> Result<Vec<u8>> {
     let plaintext = decrypt_with_key(rest, &key)
         .map_err(|e| anyhow::anyhow!("AES-GCM decryption failed: {:?}", e))?;
 
-    // Safe cleaning
-    key.zeroize(); // This just makes the key leave the scope. Maybe zeroize is an option but i haven't worked out that yet haha.
+    // safe cleaning
+    key.zeroize();
 
     Ok(plaintext)
 }
 
-// Clean up sensitive data
-pub fn zeroize_bytes(data: &mut [u8]) {
-    data.zeroize();
-}
-
+// The above is testing code, probably should be removed later.
 #[cfg(test)]
 #[allow(unused)]
 mod test_crypto {

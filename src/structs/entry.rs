@@ -17,7 +17,7 @@ pub struct Entry {
 impl Entry {
     pub fn new(name: String, filename: String) -> Self {
         Self {
-            id: None, //I can't safely create an ID until i know our current id cap.
+            id: None,
             name,
             filename,
 

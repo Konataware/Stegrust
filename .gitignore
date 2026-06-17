@@ -9,4 +9,5 @@ python/__pycache__/
 # Env
 .env
 
+# files we dont want to commit
 *.png
